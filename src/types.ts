@@ -45,6 +45,7 @@ export type ConnectionStatus =
   | 'connecting'
   | 'connected'
   | 'host-not-found'
+  | 'connection-blocked'
   | 'reconnecting'
   | 'disconnected'
   | 'error'

@@ -94,6 +94,13 @@ export function JoinScreen({ status, error, initialCode, onHost, onJoin }: JoinS
             No room found with that code. Double-check it and try again.
           </p>
         )}
+        {status === 'connection-blocked' && (
+          <p className="status-msg status-msg--error">
+            Couldn't connect &mdash; this can happen on restrictive networks (a corporate
+            VPN or firewall blocking peer-to-peer traffic). Try a different network, or
+            turn off any VPN, and try again.
+          </p>
+        )}
         {status === 'error' && (
           <p className="status-msg status-msg--error">{error ?? 'Something went wrong.'}</p>
         )}

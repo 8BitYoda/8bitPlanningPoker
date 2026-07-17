@@ -9,6 +9,7 @@ import type {
   VoteValue,
 } from '../types'
 import { getClientId } from '../utils/clientId'
+import { PEER_ICE_CONFIG } from '../utils/iceServers'
 import { generateRoomCode, roomCodeToPeerId } from '../utils/roomCode'
 
 const JOIN_TIMEOUT_MS = 10_000
@@ -219,7 +220,7 @@ export function usePlanningPokerSession(): PlanningPokerSession {
       setIsHost(true)
 
       const code = generateRoomCode()
-      const peer = new Peer(roomCodeToPeerId(code))
+      const peer = new Peer(roomCodeToPeerId(code), PEER_ICE_CONFIG)
       peerRef.current = peer
 
       peer.on('open', (id) => {
@@ -270,31 +271,35 @@ export function usePlanningPokerSession(): PlanningPokerSession {
       // label) silently comes back empty.
       setSelfId(clientId)
       const hostId = roomCodeToPeerId(code)
-      const peer = new Peer()
+      const peer = new Peer(PEER_ICE_CONFIG)
       peerRef.current = peer
       // Tracks whether we've ever gotten in, so a later drop is always
-      // treated as "reconnect quietly" rather than re-litigating the code.
+      // treated as "reconnect quietly" rather than re-litigating the code,
+      // and so host-not-found/connection-blocked can never fire again once
+      // we're actually in the room.
       let hasConnectedOnce = false
+
+      // Covers the whole initial handshake (broker connect + peer connect +
+      // data channel open), not just the peer.connect() step — a broker
+      // that's unreachable from the start should still resolve to a clear
+      // status instead of leaving the UI stuck on "Connecting…" forever.
+      clearJoinTimeout()
+      joinTimeoutRef.current = setTimeout(() => {
+        setStatus((s) => (s === 'connecting' ? 'connection-blocked' : s))
+      }, JOIN_TIMEOUT_MS)
 
       const scheduleRetry = () => {
         if (peerRef.current !== peer || peer.destroyed) return
         clearReconnectTimer()
         reconnectTimerRef.current = setTimeout(() => {
           reconnectTimerRef.current = null
-          if (peerRef.current === peer && !peer.destroyed) connectToHost(false)
+          if (peerRef.current === peer && !peer.destroyed) connectToHost()
         }, RECONNECT_RETRY_MS)
       }
 
-      const connectToHost = (isInitial: boolean) => {
+      const connectToHost = () => {
         const conn = peer.connect(hostId, { reliable: true })
         hostConnRef.current = conn
-
-        if (isInitial) {
-          clearJoinTimeout()
-          joinTimeoutRef.current = setTimeout(() => {
-            setStatus((s) => (s === 'connecting' ? 'host-not-found' : s))
-          }, JOIN_TIMEOUT_MS)
-        }
 
         conn.on('open', () => {
           clearJoinTimeout()
@@ -319,7 +324,7 @@ export function usePlanningPokerSession(): PlanningPokerSession {
       }
 
       peer.on('open', () => {
-        connectToHost(true)
+        connectToHost()
       })
 
       peer.on('disconnected', () => {
@@ -327,19 +332,37 @@ export function usePlanningPokerSession(): PlanningPokerSession {
       })
 
       peer.on('error', (err) => {
-        // These two error types can fire at the Peer level without the
-        // DataConnection ever emitting its own close/error, so the retry
-        // loop is driven from here too, not just handleDrop.
-        if (err.type === 'peer-unavailable' || err.type === 'network') {
+        if (err.type === 'peer-unavailable') {
+          // The broker positively confirmed no such room — this is the
+          // only case that should ever say "no room with that code".
           if (hasConnectedOnce) {
             setStatus('reconnecting')
             scheduleRetry()
-          } else if (err.type === 'peer-unavailable') {
+          } else {
             clearJoinTimeout()
             setStatus((s) => (s === 'connecting' ? 'host-not-found' : s))
           }
           return
         }
+        if (err.type === 'network' || err.type === 'server-error' || err.type === 'socket-error') {
+          // These all mean "couldn't reach (or lost) the signaling server"
+          // rather than anything about the room itself, and can fire at the
+          // Peer level without the DataConnection ever emitting its own
+          // close/error — so the retry loop is driven from here too once
+          // we're in. Before the first successful connect, deliberately
+          // don't jump to connection-blocked immediately — this can be a
+          // transient startup blip that resolves on its own, and the
+          // top-level join timeout above is the single source of truth for
+          // "genuinely couldn't connect in time".
+          if (hasConnectedOnce) {
+            setStatus('reconnecting')
+            scheduleRetry()
+          }
+          return
+        }
+        // Anything else (invalid-id, browser-incompatible, ssl-unavailable,
+        // ...) is an environment/config problem, not a network one — "try a
+        // different network" would be actively wrong advice here.
         clearJoinTimeout()
         setStatus('error')
         setError(err.message)
@@ -351,7 +374,7 @@ export function usePlanningPokerSession(): PlanningPokerSession {
         if (hostConnRef.current?.open) return
         if (!hasConnectedOnce) return
         clearReconnectTimer()
-        connectToHost(false)
+        connectToHost()
       }
       document.addEventListener('visibilitychange', handleVisibility)
       visibilityCleanupRef.current = () =>
