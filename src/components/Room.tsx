@@ -9,14 +9,26 @@ interface RoomProps {
 }
 
 export function Room({ session }: RoomProps) {
-  const { state, isHost, selfId, status, castVote, reveal, newRound, setStory, leave } = session
+  const {
+    state,
+    isHost,
+    selfId,
+    status,
+    castVote,
+    setSpectator,
+    reveal,
+    newRound,
+    setStory,
+    leave,
+  } = session
   const [copied, setCopied] = useState(false)
   const [presenterMode, setPresenterMode] = useState(false)
 
   if (!state) return null
 
   const self = state.players.find((p) => p.id === selfId) ?? null
-  const votesCast = state.players.filter((p) => p.vote !== null).length
+  const activeVoters = state.players.filter((p) => !p.isSpectator)
+  const votesCast = activeVoters.filter((p) => p.vote !== null).length
 
   const copyCode = async () => {
     try {
@@ -52,22 +64,33 @@ export function Room({ session }: RoomProps) {
         </button>
       </div>
 
-      {isHost && (
-        <div className="presenter-bar">
+      <div className="controls-bar">
+        <button
+          type="button"
+          className={`pixel-btn pixel-btn--small ${self?.isSpectator ? 'toggle-btn--active' : ''}`}
+          onClick={() => setSpectator(!self?.isSpectator)}
+          title="Sit this round out — you won't vote and won't block Reveal"
+        >
+          👀 {self?.isSpectator ? 'Spectating' : 'Spectate'}
+        </button>
+
+        {isHost && (
           <button
             type="button"
-            className={`pixel-btn pixel-btn--small ${
-              presenterMode ? 'presenter-toggle--active' : ''
-            }`}
+            className={`pixel-btn pixel-btn--small ${presenterMode ? 'toggle-btn--active' : ''}`}
             onClick={() => setPresenterMode((v) => !v)}
             title="Hides your own vote card so it's safe to screen-share this window"
           >
             🖥️ Presenter Mode: {presenterMode ? 'ON' : 'OFF'}
           </button>
-          {presenterMode && (
-            <span className="presenter-bar-hint">🔒 your vote is hidden on this screen</span>
-          )}
-        </div>
+        )}
+      </div>
+
+      {self?.isSpectator && (
+        <p className="controls-hint">👀 spectating — you won't vote this round</p>
+      )}
+      {isHost && presenterMode && (
+        <p className="controls-hint">🔒 your vote is hidden on this screen</p>
       )}
 
       <label className="field story-field">
@@ -93,11 +116,15 @@ export function Room({ session }: RoomProps) {
 
       {state.revealed && <VoteSummary players={state.players} />}
 
-      <VoteDeck
-        value={self?.vote ?? null}
-        onVote={castVote}
-        hideSelection={isHost && presenterMode}
-      />
+      {self?.isSpectator ? (
+        <p className="spectator-notice">👀 You're spectating — sit back and watch this round.</p>
+      ) : (
+        <VoteDeck
+          value={self?.vote ?? null}
+          onVote={castVote}
+          hideSelection={isHost && presenterMode}
+        />
+      )}
 
       {isHost && (
         <div className="host-controls">

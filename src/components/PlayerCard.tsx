@@ -12,8 +12,16 @@ export function PlayerCard({ player, revealed, isSelf }: PlayerCardProps) {
 
   return (
     <div className={`player-card ${isSelf ? 'player-card--self' : ''}`}>
-      <div className={`player-card-face ${hasVoted ? 'player-card-face--voted' : ''}`}>
-        {showValue ? player.vote : hasVoted ? '★' : '?'}
+      <div
+        className={`player-card-face ${
+          player.isSpectator
+            ? 'player-card-face--spectator'
+            : hasVoted
+              ? 'player-card-face--voted'
+              : ''
+        }`}
+      >
+        {player.isSpectator ? '👀' : showValue ? player.vote : hasVoted ? '★' : '?'}
       </div>
       <div className="player-card-name">
         {player.isHost && <span title="Host">♛ </span>}

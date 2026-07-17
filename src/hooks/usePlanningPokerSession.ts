@@ -13,7 +13,7 @@ import { generateRoomCode, roomCodeToPeerId } from '../utils/roomCode'
 const JOIN_TIMEOUT_MS = 10_000
 
 function allVoted(players: Player[]): boolean {
-  const active = players.filter((p) => p.connected)
+  const active = players.filter((p) => p.connected && !p.isSpectator)
   return active.length > 0 && active.every((p) => p.vote !== null)
 }
 
@@ -26,6 +26,7 @@ export interface PlanningPokerSession {
   hostGame: (name: string) => void
   joinGame: (name: string, code: string) => void
   castVote: (value: VoteValue | null) => void
+  setSpectator: (spectating: boolean) => void
   reveal: () => void
   newRound: () => void
   setStory: (story: string) => void
@@ -108,6 +109,7 @@ export function usePlanningPokerSession(): PlanningPokerSession {
                   name: msg.name,
                   vote: null,
                   isHost: false,
+                  isSpectator: false,
                   connected: true,
                 },
               ]
@@ -116,6 +118,8 @@ export function usePlanningPokerSession(): PlanningPokerSession {
         }
 
         if (msg.type === 'vote') {
+          const voter = prev.players.find((p) => p.id === conn.peer)
+          if (!voter || voter.isSpectator) return
           const players = prev.players.map((p) =>
             p.id === conn.peer ? { ...p, vote: msg.value } : p,
           )
@@ -129,6 +133,17 @@ export function usePlanningPokerSession(): PlanningPokerSession {
             p.id === conn.peer ? { ...p, name: msg.name } : p,
           )
           hostUpdate(() => ({ ...prev, players }))
+          return
+        }
+
+        if (msg.type === 'spectate') {
+          const players = prev.players.map((p) =>
+            p.id === conn.peer
+              ? { ...p, isSpectator: msg.spectating, vote: msg.spectating ? null : p.vote }
+              : p,
+          )
+          const revealed = prev.revealed || allVoted(players)
+          hostUpdate(() => ({ ...prev, players, revealed }))
         }
       })
 
@@ -165,7 +180,9 @@ export function usePlanningPokerSession(): PlanningPokerSession {
           code,
           story: '',
           revealed: false,
-          players: [{ id, name, vote: null, isHost: true, connected: true }],
+          players: [
+            { id, name, vote: null, isHost: true, isSpectator: false, connected: true },
+          ],
         })
       })
 
@@ -244,11 +261,31 @@ export function usePlanningPokerSession(): PlanningPokerSession {
         const prev = stateRef.current
         const id = selfId
         if (!prev || !id) return
+        const self = prev.players.find((p) => p.id === id)
+        if (!self || self.isSpectator) return
         const players = prev.players.map((p) => (p.id === id ? { ...p, vote: value } : p))
         const revealed = prev.revealed || allVoted(players)
         hostUpdate(() => ({ ...prev, players, revealed }))
       } else {
         hostConnRef.current?.send({ type: 'vote', value } satisfies ClientMessage)
+      }
+    },
+    [hostUpdate, isHost, selfId],
+  )
+
+  const setSpectator = useCallback(
+    (spectating: boolean) => {
+      if (isHost) {
+        const prev = stateRef.current
+        const id = selfId
+        if (!prev || !id) return
+        const players = prev.players.map((p) =>
+          p.id === id ? { ...p, isSpectator: spectating, vote: spectating ? null : p.vote } : p,
+        )
+        const revealed = prev.revealed || allVoted(players)
+        hostUpdate(() => ({ ...prev, players, revealed }))
+      } else {
+        hostConnRef.current?.send({ type: 'spectate', spectating } satisfies ClientMessage)
       }
     },
     [hostUpdate, isHost, selfId],
@@ -294,6 +331,7 @@ export function usePlanningPokerSession(): PlanningPokerSession {
     hostGame,
     joinGame,
     castVote,
+    setSpectator,
     reveal,
     newRound,
     setStory,

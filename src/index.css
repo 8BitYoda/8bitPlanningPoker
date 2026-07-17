@@ -245,23 +245,24 @@ body {
   color: var(--fg-dim);
 }
 
-.presenter-bar {
+.controls-bar {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 10px;
 }
 
-.presenter-toggle--active {
+.toggle-btn--active {
   background: var(--accent-4);
   border-color: var(--accent-4);
   color: var(--bg);
 }
 
-.presenter-bar-hint {
+.controls-hint {
   font-size: 0.5rem;
   color: var(--accent-4);
   line-height: 1.6;
+  margin: 0;
 }
 
 .story-field {
@@ -308,6 +309,11 @@ body {
   color: var(--accent);
 }
 
+.player-card-face--spectator {
+  border-style: dashed;
+  color: var(--fg-dim);
+}
+
 .player-card--self .player-card-face {
   border-color: var(--accent-4);
 }
@@ -326,6 +332,16 @@ body {
   gap: 8px;
   justify-content: center;
   padding: 16px 0;
+  border-top: 3px dashed var(--border);
+  border-bottom: 3px dashed var(--border);
+}
+
+.spectator-notice {
+  margin: 0;
+  padding: 16px 0;
+  text-align: center;
+  font-size: 0.6rem;
+  color: var(--fg-dim);
   border-top: 3px dashed var(--border);
   border-bottom: 3px dashed var(--border);
 }
