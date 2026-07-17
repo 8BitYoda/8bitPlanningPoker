@@ -251,15 +251,20 @@ body {
 }
 
 .room-code-copy {
-  font-size: 0.5rem;
+  display: flex;
   color: var(--fg-dim);
 }
 
-.controls-bar {
+.room-header-actions {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
+}
+
+.pixel-btn--icon {
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  line-height: 1;
 }
 
 .toggle-btn--active {
@@ -388,6 +393,13 @@ body {
   left: 4px;
   font-size: 0.4rem;
   color: var(--fg-dim);
+}
+
+/* Color emoji glyphs render visually larger than text at the same
+   font-size — scale the coffee-break card down so it reads as the same
+   size as the numeric cards next to it. */
+.vote-symbol--emoji {
+  font-size: 0.7em;
 }
 
 .vote-card:hover {

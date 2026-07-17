@@ -62,33 +62,66 @@ export function Room({ session }: RoomProps) {
         <div className="room-code" onClick={copyCode} title="Click to copy an invite link">
           <span className="room-code-label">ROOM</span>
           <span className="room-code-value">{state.code}</span>
-          <span className="room-code-copy">{copied ? 'link copied!' : 'copy link'}</span>
+          <span className="room-code-copy" aria-hidden="true">
+            {copied ? (
+              <svg viewBox="0 0 16 16" width="14" height="14" shapeRendering="crispEdges">
+                <path d="M3 8 L6.5 12 L13 3" fill="none" stroke="currentColor" strokeWidth="2" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 16 16" width="14" height="14" shapeRendering="crispEdges">
+                <rect x="2" y="2" width="8" height="8" fill="none" stroke="currentColor" strokeWidth="1.5" />
+                <rect
+                  x="6"
+                  y="6"
+                  width="8"
+                  height="8"
+                  fill="var(--bg-panel)"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                />
+              </svg>
+            )}
+          </span>
         </div>
-        <button className="pixel-btn pixel-btn--small" onClick={leave}>
-          Leave
-        </button>
-      </div>
-
-      <div className="controls-bar">
-        <button
-          type="button"
-          className={`pixel-btn pixel-btn--small ${self?.isSpectator ? 'toggle-btn--active' : ''}`}
-          onClick={() => setSpectator(!self?.isSpectator)}
-          title="Sit this round out — you won't vote and won't block Reveal"
-        >
-          👀 {self?.isSpectator ? 'Spectating' : 'Spectate'}
-        </button>
-
-        {isHost && (
+        <div className="room-header-actions">
           <button
             type="button"
-            className={`pixel-btn pixel-btn--small ${presenterMode ? 'toggle-btn--active' : ''}`}
-            onClick={() => setPresenterMode((v) => !v)}
-            title="Hides your own vote card so it's safe to screen-share this window"
+            className={`pixel-btn pixel-btn--small pixel-btn--icon ${
+              self?.isSpectator ? 'toggle-btn--active' : ''
+            }`}
+            onClick={() => setSpectator(!self?.isSpectator)}
+            title={
+              self?.isSpectator
+                ? "Spectating — click to rejoin voting"
+                : "Spectate — sit this round out, won't vote or block Reveal"
+            }
+            aria-label="Toggle spectate mode"
           >
-            🖥️ Presenter Mode: {presenterMode ? 'ON' : 'OFF'}
+            👀
           </button>
-        )}
+
+          {isHost && (
+            <button
+              type="button"
+              className={`pixel-btn pixel-btn--small pixel-btn--icon ${
+                presenterMode ? 'toggle-btn--active' : ''
+              }`}
+              onClick={() => setPresenterMode((v) => !v)}
+              title={
+                presenterMode
+                  ? 'Presenter Mode ON — your vote is hidden on this screen'
+                  : "Presenter Mode — hide your vote so it's safe to screen-share"
+              }
+              aria-label="Toggle presenter mode"
+            >
+              🖥️
+            </button>
+          )}
+
+          <button className="pixel-btn pixel-btn--small" onClick={leave}>
+            Leave
+          </button>
+        </div>
       </div>
 
       {self?.isSpectator && (

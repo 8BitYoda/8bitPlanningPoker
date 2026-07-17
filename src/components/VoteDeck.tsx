@@ -38,7 +38,7 @@ export function VoteDeck({ value, onVote, hideSelection = false }: VoteDeckProps
           onClick={() => onVote(value === v ? null : v)}
           title={`Press "${VOTE_KEYS[i]}" to vote ${v}`}
         >
-          {v}
+          <span className={v === '☕' ? 'vote-symbol vote-symbol--emoji' : 'vote-symbol'}>{v}</span>
           <span className="vote-card-key">{VOTE_KEYS[i]}</span>
         </button>
       ))}
