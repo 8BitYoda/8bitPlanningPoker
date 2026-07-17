@@ -357,6 +357,15 @@ body {
   border: 3px solid var(--border);
   cursor: pointer;
   box-shadow: 3px 3px 0 #000;
+  outline: none;
+}
+
+/* Only show a focus ring for real keyboard navigation, not mouse clicks —
+   a click-triggered browser default outline would leak the picked card
+   during Presenter Mode the same way the selected-card highlight would. */
+.vote-card:focus-visible {
+  outline: 2px solid var(--accent-4);
+  outline-offset: 2px;
 }
 
 .vote-card-key {
