@@ -1,9 +1,16 @@
+import { useEffect, useState } from 'react'
 import { usePlanningPokerSession } from './hooks/usePlanningPokerSession'
 import { JoinScreen } from './components/JoinScreen'
 import { Room } from './components/Room'
+import { clearCodeFromUrl, getCodeFromUrl } from './utils/roomCode'
 
 export default function App() {
   const session = usePlanningPokerSession()
+  const [inviteCode] = useState(getCodeFromUrl)
+
+  useEffect(() => {
+    if (inviteCode) clearCodeFromUrl()
+  }, [inviteCode])
 
   return (
     <div className="app-shell">
@@ -19,6 +26,7 @@ export default function App() {
           <JoinScreen
             status={session.status}
             error={session.error}
+            initialCode={inviteCode}
             onHost={session.hostGame}
             onJoin={session.joinGame}
           />

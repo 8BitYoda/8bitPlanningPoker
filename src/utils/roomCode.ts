@@ -18,3 +18,28 @@ export function normalizeRoomCode(code: string): string {
 export function roomCodeToPeerId(code: string): string {
   return `${PEER_ID_PREFIX}${normalizeRoomCode(code)}`
 }
+
+const CODE_PARAM = 'code'
+
+/** Reads a room code off `?code=` in the current URL, if present. */
+export function getCodeFromUrl(): string | null {
+  const raw = new URLSearchParams(window.location.search).get(CODE_PARAM)
+  if (!raw) return null
+  const code = normalizeRoomCode(raw)
+  return code || null
+}
+
+/** Removes `?code=` from the visible URL without adding a history entry. */
+export function clearCodeFromUrl(): void {
+  const url = new URL(window.location.href)
+  url.searchParams.delete(CODE_PARAM)
+  window.history.replaceState({}, '', url)
+}
+
+/** A shareable link that pre-fills the Join form with this room's code. */
+export function buildInviteLink(code: string): string {
+  const url = new URL(window.location.href)
+  url.search = `?${CODE_PARAM}=${normalizeRoomCode(code)}`
+  url.hash = ''
+  return url.toString()
+}

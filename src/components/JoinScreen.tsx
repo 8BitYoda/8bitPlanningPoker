@@ -4,16 +4,18 @@ import type { ConnectionStatus } from '../types'
 interface JoinScreenProps {
   status: ConnectionStatus
   error: string | null
+  /** A room code pulled from an invite link (`?code=`), pre-filling Join. */
+  initialCode?: string | null
   onHost: (name: string) => void
   onJoin: (name: string, code: string) => void
 }
 
 const NAME_KEY = '8bitpp-name'
 
-export function JoinScreen({ status, error, onHost, onJoin }: JoinScreenProps) {
-  const [mode, setMode] = useState<'host' | 'join'>('host')
+export function JoinScreen({ status, error, initialCode, onHost, onJoin }: JoinScreenProps) {
+  const [mode, setMode] = useState<'host' | 'join'>(initialCode ? 'join' : 'host')
   const [name, setName] = useState(() => localStorage.getItem(NAME_KEY) ?? '')
-  const [code, setCode] = useState('')
+  const [code, setCode] = useState(initialCode ?? '')
 
   const busy = status === 'connecting'
   const trimmedName = name.trim()
