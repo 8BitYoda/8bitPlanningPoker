@@ -59,12 +59,12 @@ export function LockIcon() {
 export function CrownIcon() {
   return (
     <svg {...commonProps} shapeRendering="crispEdges" fill="currentColor">
-      <rect x="1" y="10" width="14" height="2" />
-      <rect x="1" y="6" width="2" height="4" />
-      <rect x="7" y="4" width="2" height="6" />
-      <rect x="13" y="6" width="2" height="4" />
-      <rect x="4" y="8" width="2" height="2" />
-      <rect x="10" y="8" width="2" height="2" />
+      <rect x="1" y="11" width="14" height="2" />
+      <rect x="1" y="6" width="2" height="5" />
+      <rect x="7" y="2" width="2" height="9" />
+      <rect x="13" y="6" width="2" height="5" />
+      <rect x="4" y="8" width="2" height="3" />
+      <rect x="10" y="8" width="2" height="3" />
     </svg>
   )
 }
