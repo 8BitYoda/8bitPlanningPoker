@@ -87,13 +87,7 @@ export function Room({ session }: RoomProps) {
 
       <div className="player-grid">
         {state.players.map((p) => (
-          <PlayerCard
-            key={p.id}
-            player={p}
-            revealed={state.revealed}
-            isSelf={p.id === selfId}
-            maskVoted={isHost && presenterMode && p.id === selfId}
-          />
+          <PlayerCard key={p.id} player={p} revealed={state.revealed} isSelf={p.id === selfId} />
         ))}
       </div>
 
