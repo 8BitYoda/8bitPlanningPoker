@@ -1,4 +1,5 @@
 import type { Player } from '../types'
+import { CoffeeIcon } from './CoffeeIcon'
 
 interface VoteSummaryProps {
   players: Player[]
@@ -26,7 +27,7 @@ export function VoteSummary({ players }: VoteSummaryProps) {
       <div className="vote-summary-bars">
         {[...counts.entries()].map(([v, count]) => (
           <div key={v} className="vote-summary-bar-row">
-            <span className="vote-summary-bar-label">{v}</span>
+            <span className="vote-summary-bar-label">{v === '☕' ? <CoffeeIcon /> : v}</span>
             <div className="vote-summary-bar-track">
               <div
                 className="vote-summary-bar-fill"

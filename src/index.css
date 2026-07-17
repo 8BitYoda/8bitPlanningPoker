@@ -399,14 +399,6 @@ body {
   color: var(--fg-dim);
 }
 
-/* Sized against real-device feedback, not this sandbox — its emoji font
-   renders backwards from most real browsers (smaller than text, not
-   larger), so 0.7em here looked right locally but was way too small on
-   an actual device. */
-.vote-symbol--emoji {
-  font-size: 1.1em;
-}
-
 .vote-card:hover {
   border-color: var(--accent-4);
 }

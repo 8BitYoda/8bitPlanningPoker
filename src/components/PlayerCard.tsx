@@ -1,4 +1,5 @@
 import type { Player } from '../types'
+import { CoffeeIcon } from './CoffeeIcon'
 
 interface PlayerCardProps {
   player: Player
@@ -28,9 +29,11 @@ export function PlayerCard({ player, revealed, isSelf }: PlayerCardProps) {
         {player.isSpectator ? (
           '👀'
         ) : showValue ? (
-          <span className={player.vote === '☕' ? 'vote-symbol vote-symbol--emoji' : 'vote-symbol'}>
-            {player.vote}
-          </span>
+          player.vote === '☕' ? (
+            <CoffeeIcon />
+          ) : (
+            player.vote
+          )
         ) : hasVoted ? (
           '★'
         ) : (
