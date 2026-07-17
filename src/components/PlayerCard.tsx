@@ -31,6 +31,8 @@ export function PlayerCard({ player, revealed, isSelf }: PlayerCardProps) {
         ) : showValue ? (
           player.vote === '☕' ? (
             <CoffeeIcon />
+          ) : player.vote === '0.5' ? (
+            <span className="vote-value--tight">{player.vote}</span>
           ) : (
             player.vote
           )
