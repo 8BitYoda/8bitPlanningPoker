@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { PlanningPokerSession } from '../hooks/usePlanningPokerSession'
+import { buildInviteLink } from '../utils/roomCode'
 import { PlayerCard } from './PlayerCard'
 import { VoteDeck } from './VoteDeck'
 import { VoteSummary } from './VoteSummary'
@@ -32,7 +33,7 @@ export function Room({ session }: RoomProps) {
 
   const copyCode = async () => {
     try {
-      await navigator.clipboard.writeText(state.code)
+      await navigator.clipboard.writeText(buildInviteLink(state.code))
       setCopied(true)
       setTimeout(() => setCopied(false), 1500)
     } catch {
@@ -54,10 +55,10 @@ export function Room({ session }: RoomProps) {
       )}
 
       <div className="room-header">
-        <div className="room-code" onClick={copyCode} title="Click to copy">
+        <div className="room-code" onClick={copyCode} title="Click to copy an invite link">
           <span className="room-code-label">ROOM</span>
           <span className="room-code-value">{state.code}</span>
-          <span className="room-code-copy">{copied ? 'copied!' : 'copy'}</span>
+          <span className="room-code-copy">{copied ? 'link copied!' : 'copy link'}</span>
         </div>
         <button className="pixel-btn pixel-btn--small" onClick={leave}>
           Leave
