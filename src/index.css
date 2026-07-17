@@ -245,6 +245,25 @@ body {
   color: var(--fg-dim);
 }
 
+.presenter-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.presenter-toggle--active {
+  background: var(--accent-4);
+  border-color: var(--accent-4);
+  color: var(--bg);
+}
+
+.presenter-bar-hint {
+  font-size: 0.5rem;
+  color: var(--accent-4);
+  line-height: 1.6;
+}
+
 .story-field {
   gap: 8px;
 }
