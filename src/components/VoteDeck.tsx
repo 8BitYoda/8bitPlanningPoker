@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { VOTE_VALUES, type VoteValue } from '../types'
-import { CoffeeIcon } from './CoffeeIcon'
+import { CoffeeIcon } from './icons'
 
 interface VoteDeckProps {
   value: VoteValue | null
