@@ -11,6 +11,7 @@ interface RoomProps {
 export function Room({ session }: RoomProps) {
   const { state, isHost, selfId, status, castVote, reveal, newRound, setStory, leave } = session
   const [copied, setCopied] = useState(false)
+  const [presenterMode, setPresenterMode] = useState(false)
 
   if (!state) return null
 
@@ -51,6 +52,24 @@ export function Room({ session }: RoomProps) {
         </button>
       </div>
 
+      {isHost && (
+        <div className="presenter-bar">
+          <button
+            type="button"
+            className={`pixel-btn pixel-btn--small ${
+              presenterMode ? 'presenter-toggle--active' : ''
+            }`}
+            onClick={() => setPresenterMode((v) => !v)}
+            title="Hides your own vote card so it's safe to screen-share this window"
+          >
+            🖥️ Presenter Mode: {presenterMode ? 'ON' : 'OFF'}
+          </button>
+          {presenterMode && (
+            <span className="presenter-bar-hint">🔒 your vote is hidden on this screen</span>
+          )}
+        </div>
+      )}
+
       <label className="field story-field">
         <span>Story / Ticket</span>
         {isHost ? (
@@ -74,7 +93,11 @@ export function Room({ session }: RoomProps) {
 
       {state.revealed && <VoteSummary players={state.players} />}
 
-      <VoteDeck value={self?.vote ?? null} onVote={castVote} />
+      <VoteDeck
+        value={self?.vote ?? null}
+        onVote={castVote}
+        hideSelection={isHost && presenterMode}
+      />
 
       {isHost && (
         <div className="host-controls">
