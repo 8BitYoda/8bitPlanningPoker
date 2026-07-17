@@ -201,14 +201,24 @@ body {
 
 .banner {
   padding: 12px;
-  border: 3px solid var(--danger);
-  background: rgba(255, 93, 93, 0.1);
   font-size: 0.55rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
   line-height: 1.6;
+}
+
+.banner--warning {
+  border: 3px solid var(--danger);
+  background: rgba(255, 93, 93, 0.1);
+}
+
+.banner--info {
+  border: 3px solid var(--accent-4);
+  background: rgba(93, 200, 255, 0.1);
+  justify-content: center;
+  color: var(--accent-4);
 }
 
 .room-header {
@@ -316,6 +326,10 @@ body {
 
 .player-card--self .player-card-face {
   border-color: var(--accent-4);
+}
+
+.player-card--away {
+  opacity: 0.45;
 }
 
 .player-card-name {

@@ -43,6 +43,10 @@ export function Room({ session }: RoomProps) {
 
   return (
     <div className="room">
+      {status === 'reconnecting' && (
+        <div className="banner banner--info">🔄 Reconnecting…</div>
+      )}
+
       {(status === 'disconnected' || status === 'error') && (
         <div className="banner banner--warning">
           {status === 'disconnected'
