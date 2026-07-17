@@ -173,6 +173,7 @@ body {
   font-size: 0.55rem;
   padding: 8px 10px;
   box-shadow: 3px 3px 0 #000;
+  line-height: 1.2rem;
 }
 
 .status-msg {
@@ -264,7 +265,10 @@ body {
 .pixel-btn--icon {
   padding: 8px 10px;
   font-size: 0.85rem;
-  line-height: 1;
+  /* Same fixed line-height as .pixel-btn--small (not relative to this
+     rule's own larger font-size) so this button's box height matches
+     Leave's exactly, despite the bigger emoji glyph. */
+  line-height: 1.2rem;
 }
 
 .toggle-btn--active {
@@ -395,11 +399,12 @@ body {
   color: var(--fg-dim);
 }
 
-/* Color emoji glyphs render visually larger than text at the same
-   font-size — scale the coffee-break card down so it reads as the same
-   size as the numeric cards next to it. */
+/* Sized against real-device feedback, not this sandbox — its emoji font
+   renders backwards from most real browsers (smaller than text, not
+   larger), so 0.7em here looked right locally but was way too small on
+   an actual device. */
 .vote-symbol--emoji {
-  font-size: 0.7em;
+  font-size: 1.1em;
 }
 
 .vote-card:hover {
