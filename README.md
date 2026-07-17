@@ -1,5 +1,7 @@
 # 8-Bit Planning Poker
 
+**▶ [Play now](https://8bityoda.github.io/8bitPlanningPoker/)**
+
 A serverless, peer-to-peer planning poker app with a retro 8-bit look. Built
 with React, TypeScript, Vite, and [PeerJS](https://peerjs.com/) — there's no
 backend, and no data ever touches a server you have to run. Players connect
