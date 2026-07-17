@@ -33,7 +33,7 @@ export interface RoomState {
 }
 
 export type ClientMessage =
-  | { type: 'join'; name: string }
+  | { type: 'join'; name: string; clientId: string }
   | { type: 'vote'; value: VoteValue | null }
   | { type: 'rename'; name: string }
   | { type: 'spectate'; spectating: boolean }
@@ -45,5 +45,6 @@ export type ConnectionStatus =
   | 'connecting'
   | 'connected'
   | 'host-not-found'
+  | 'reconnecting'
   | 'disconnected'
   | 'error'

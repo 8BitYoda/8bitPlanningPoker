@@ -8,9 +8,14 @@ import type {
   RoomState,
   VoteValue,
 } from '../types'
+import { getClientId } from '../utils/clientId'
 import { generateRoomCode, roomCodeToPeerId } from '../utils/roomCode'
 
 const JOIN_TIMEOUT_MS = 10_000
+const RECONNECT_RETRY_MS = 3_000
+// A dropped connection (backgrounded tab, brief network blip) doesn't remove
+// a player from the room — only a full hour of never reconnecting does.
+const GRACE_PERIOD_MS = 60 * 60 * 1000
 
 function allVoted(players: Player[]): boolean {
   const active = players.filter((p) => p.connected && !p.isSpectator)
@@ -42,14 +47,25 @@ export function usePlanningPokerSession(): PlanningPokerSession {
 
   const peerRef = useRef<Peer | null>(null)
   const hostConnRef = useRef<DataConnection | null>(null)
-  const peerConnsRef = useRef<Map<string, DataConnection>>(new Map())
+  const connByClientIdRef = useRef<Map<string, DataConnection>>(new Map())
+  const pendingRemovalRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
   const stateRef = useRef<RoomState | null>(null)
   const joinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const visibilityCleanupRef = useRef<(() => void) | null>(null)
+  const nameRef = useRef<string>('')
 
   const clearJoinTimeout = () => {
     if (joinTimeoutRef.current) {
       clearTimeout(joinTimeoutRef.current)
       joinTimeoutRef.current = null
+    }
+  }
+
+  const clearReconnectTimer = () => {
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current)
+      reconnectTimerRef.current = null
     }
   }
 
@@ -60,7 +76,7 @@ export function usePlanningPokerSession(): PlanningPokerSession {
 
   const broadcast = useCallback((next: RoomState) => {
     const msg: HostMessage = { type: 'state', state: next }
-    peerConnsRef.current.forEach((conn) => {
+    connByClientIdRef.current.forEach((conn) => {
       if (conn.open) conn.send(msg)
     })
   }, [])
@@ -78,8 +94,13 @@ export function usePlanningPokerSession(): PlanningPokerSession {
 
   const teardown = useCallback(() => {
     clearJoinTimeout()
-    peerConnsRef.current.forEach((conn) => conn.close())
-    peerConnsRef.current.clear()
+    clearReconnectTimer()
+    visibilityCleanupRef.current?.()
+    visibilityCleanupRef.current = null
+    pendingRemovalRef.current.forEach((timeout) => clearTimeout(timeout))
+    pendingRemovalRef.current.clear()
+    connByClientIdRef.current.forEach((conn) => conn.close())
+    connByClientIdRef.current.clear()
     hostConnRef.current?.close()
     hostConnRef.current = null
     peerRef.current?.destroy()
@@ -91,21 +112,31 @@ export function usePlanningPokerSession(): PlanningPokerSession {
 
   const registerHostConnection = useCallback(
     (conn: DataConnection) => {
+      let clientId: string | null = null
+
       conn.on('data', (raw) => {
         const msg = raw as ClientMessage
         const prev = stateRef.current
         if (!prev) return
 
         if (msg.type === 'join') {
-          const existing = prev.players.find((p) => p.id === conn.peer)
+          clientId = msg.clientId
+          connByClientIdRef.current.set(clientId, conn)
+          const pendingRemoval = pendingRemovalRef.current.get(clientId)
+          if (pendingRemoval) {
+            clearTimeout(pendingRemoval)
+            pendingRemovalRef.current.delete(clientId)
+          }
+
+          const existing = prev.players.find((p) => p.id === clientId)
           const players = existing
             ? prev.players.map((p) =>
-                p.id === conn.peer ? { ...p, name: msg.name, connected: true } : p,
+                p.id === clientId ? { ...p, name: msg.name, connected: true } : p,
               )
             : [
                 ...prev.players,
                 {
-                  id: conn.peer,
+                  id: clientId,
                   name: msg.name,
                   vote: null,
                   isHost: false,
@@ -117,28 +148,27 @@ export function usePlanningPokerSession(): PlanningPokerSession {
           return
         }
 
+        // Any other message from a connection that never sent 'join' is stale.
+        if (!clientId) return
+
         if (msg.type === 'vote') {
-          const voter = prev.players.find((p) => p.id === conn.peer)
+          const voter = prev.players.find((p) => p.id === clientId)
           if (!voter || voter.isSpectator) return
-          const players = prev.players.map((p) =>
-            p.id === conn.peer ? { ...p, vote: msg.value } : p,
-          )
+          const players = prev.players.map((p) => (p.id === clientId ? { ...p, vote: msg.value } : p))
           const revealed = prev.revealed || allVoted(players)
           hostUpdate(() => ({ ...prev, players, revealed }))
           return
         }
 
         if (msg.type === 'rename') {
-          const players = prev.players.map((p) =>
-            p.id === conn.peer ? { ...p, name: msg.name } : p,
-          )
+          const players = prev.players.map((p) => (p.id === clientId ? { ...p, name: msg.name } : p))
           hostUpdate(() => ({ ...prev, players }))
           return
         }
 
         if (msg.type === 'spectate') {
           const players = prev.players.map((p) =>
-            p.id === conn.peer
+            p.id === clientId
               ? { ...p, isSpectator: msg.spectating, vote: msg.spectating ? null : p.vote }
               : p,
           )
@@ -147,17 +177,36 @@ export function usePlanningPokerSession(): PlanningPokerSession {
         }
       })
 
-      conn.on('close', () => {
-        peerConnsRef.current.delete(conn.peer)
+      let disconnectHandled = false
+      const handleDisconnect = () => {
+        if (disconnectHandled) return
+        disconnectHandled = true
+        if (!clientId) return
+        if (connByClientIdRef.current.get(clientId) === conn) {
+          connByClientIdRef.current.delete(clientId)
+        }
+
         const prev = stateRef.current
         if (!prev) return
-        const players = prev.players.filter((p) => p.id !== conn.peer)
-        hostUpdate(() => ({ ...prev, players }))
-      })
+        const stillThere = prev.players.some((p) => p.id === clientId)
+        if (!stillThere) return
 
-      conn.on('error', () => {
-        peerConnsRef.current.delete(conn.peer)
-      })
+        const players = prev.players.map((p) => (p.id === clientId ? { ...p, connected: false } : p))
+        hostUpdate(() => ({ ...prev, players }))
+
+        const droppedClientId = clientId
+        const timeout = setTimeout(() => {
+          pendingRemovalRef.current.delete(droppedClientId)
+          const current = stateRef.current
+          if (!current) return
+          const remaining = current.players.filter((p) => p.id !== droppedClientId)
+          hostUpdate(() => ({ ...current, players: remaining }))
+        }, GRACE_PERIOD_MS)
+        pendingRemovalRef.current.set(droppedClientId, timeout)
+      }
+
+      conn.on('close', handleDisconnect)
+      conn.on('error', handleDisconnect)
     },
     [hostUpdate],
   )
@@ -187,11 +236,14 @@ export function usePlanningPokerSession(): PlanningPokerSession {
       })
 
       peer.on('connection', (conn) => {
-        peerConnsRef.current.set(conn.peer, conn)
         registerHostConnection(conn)
         conn.on('open', () => {
           if (stateRef.current) conn.send({ type: 'state', state: stateRef.current })
         })
+      })
+
+      peer.on('disconnected', () => {
+        if (!peer.destroyed) peer.reconnect()
       })
 
       peer.on('error', (err) => {
@@ -208,22 +260,40 @@ export function usePlanningPokerSession(): PlanningPokerSession {
       setError(null)
       setStatus('connecting')
       setIsHost(false)
+      nameRef.current = name
 
+      const clientId = getClientId()
+      const hostId = roomCodeToPeerId(code)
       const peer = new Peer()
       peerRef.current = peer
+      // Tracks whether we've ever gotten in, so a later drop is always
+      // treated as "reconnect quietly" rather than re-litigating the code.
+      let hasConnectedOnce = false
 
-      peer.on('open', (id) => {
-        setSelfId(id)
-        const conn = peer.connect(roomCodeToPeerId(code), { reliable: true })
+      const scheduleRetry = () => {
+        if (peerRef.current !== peer || peer.destroyed) return
+        clearReconnectTimer()
+        reconnectTimerRef.current = setTimeout(() => {
+          reconnectTimerRef.current = null
+          if (peerRef.current === peer && !peer.destroyed) connectToHost(false)
+        }, RECONNECT_RETRY_MS)
+      }
+
+      const connectToHost = (isInitial: boolean) => {
+        const conn = peer.connect(hostId, { reliable: true })
         hostConnRef.current = conn
 
-        joinTimeoutRef.current = setTimeout(() => {
-          setStatus((s) => (s === 'connecting' ? 'host-not-found' : s))
-        }, JOIN_TIMEOUT_MS)
+        if (isInitial) {
+          clearJoinTimeout()
+          joinTimeoutRef.current = setTimeout(() => {
+            setStatus((s) => (s === 'connecting' ? 'host-not-found' : s))
+          }, JOIN_TIMEOUT_MS)
+        }
 
         conn.on('open', () => {
           clearJoinTimeout()
-          conn.send({ type: 'join', name } satisfies ClientMessage)
+          hasConnectedOnce = true
+          conn.send({ type: 'join', name: nameRef.current, clientId } satisfies ClientMessage)
           setStatus('connected')
         })
 
@@ -232,25 +302,55 @@ export function usePlanningPokerSession(): PlanningPokerSession {
           if (msg.type === 'state') setRoomState(msg.state)
         })
 
-        conn.on('close', () => {
-          setStatus('disconnected')
-        })
+        const handleDrop = () => {
+          if (peerRef.current !== peer || peer.destroyed || !hasConnectedOnce) return
+          setStatus('reconnecting')
+          scheduleRetry()
+        }
 
-        conn.on('error', () => {
-          setStatus('error')
-          setError('Lost connection to the host.')
-        })
+        conn.on('close', handleDrop)
+        conn.on('error', handleDrop)
+      }
+
+      peer.on('open', (id) => {
+        setSelfId(id)
+        connectToHost(true)
+      })
+
+      peer.on('disconnected', () => {
+        if (!peer.destroyed) peer.reconnect()
       })
 
       peer.on('error', (err) => {
-        clearJoinTimeout()
-        if (err.type === 'peer-unavailable') {
-          setStatus('host-not-found')
-        } else {
-          setStatus('error')
-          setError(err.message)
+        // These two error types can fire at the Peer level without the
+        // DataConnection ever emitting its own close/error, so the retry
+        // loop is driven from here too, not just handleDrop.
+        if (err.type === 'peer-unavailable' || err.type === 'network') {
+          if (hasConnectedOnce) {
+            setStatus('reconnecting')
+            scheduleRetry()
+          } else if (err.type === 'peer-unavailable') {
+            clearJoinTimeout()
+            setStatus((s) => (s === 'connecting' ? 'host-not-found' : s))
+          }
+          return
         }
+        clearJoinTimeout()
+        setStatus('error')
+        setError(err.message)
       })
+
+      const handleVisibility = () => {
+        if (document.visibilityState !== 'visible') return
+        if (peerRef.current !== peer || peer.destroyed) return
+        if (hostConnRef.current?.open) return
+        if (!hasConnectedOnce) return
+        clearReconnectTimer()
+        connectToHost(false)
+      }
+      document.addEventListener('visibilitychange', handleVisibility)
+      visibilityCleanupRef.current = () =>
+        document.removeEventListener('visibilitychange', handleVisibility)
     },
     [setRoomState, teardown],
   )
