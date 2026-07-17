@@ -263,6 +263,12 @@ export function usePlanningPokerSession(): PlanningPokerSession {
       nameRef.current = name
 
       const clientId = getClientId()
+      // The host keys player records by this stable clientId (not the
+      // ephemeral PeerJS peer id) so a reconnect is recognized as the same
+      // player — selfId must match that key, or every p.id === selfId
+      // lookup for "me" (VoteDeck selection, spectate toggle, "(you)"
+      // label) silently comes back empty.
+      setSelfId(clientId)
       const hostId = roomCodeToPeerId(code)
       const peer = new Peer()
       peerRef.current = peer
@@ -312,8 +318,7 @@ export function usePlanningPokerSession(): PlanningPokerSession {
         conn.on('error', handleDrop)
       }
 
-      peer.on('open', (id) => {
-        setSelfId(id)
+      peer.on('open', () => {
         connectToHost(true)
       })
 
