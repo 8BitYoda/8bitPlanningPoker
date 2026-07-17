@@ -21,6 +21,7 @@ export interface Player {
   name: string
   vote: VoteValue | null
   isHost: boolean
+  isSpectator: boolean
   connected: boolean
 }
 
@@ -35,6 +36,7 @@ export type ClientMessage =
   | { type: 'join'; name: string }
   | { type: 'vote'; value: VoteValue | null }
   | { type: 'rename'; name: string }
+  | { type: 'spectate'; spectating: boolean }
 
 export type HostMessage = { type: 'state'; state: RoomState }
 
