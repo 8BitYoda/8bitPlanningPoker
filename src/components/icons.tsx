@@ -102,7 +102,7 @@ export function CopyIcon() {
         y="6"
         width="8"
         height="8"
-        fill="var(--bg-panel)"
+        fill="var(--bg-inset)"
         stroke="currentColor"
         strokeWidth="1.5"
       />
