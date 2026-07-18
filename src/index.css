@@ -173,6 +173,7 @@ body {
   font-size: 0.55rem;
   padding: 8px 10px;
   box-shadow: 3px 3px 0 #000;
+  line-height: 1.2rem;
 }
 
 .status-msg {
@@ -232,7 +233,7 @@ body {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  background: var(--bg-panel);
+  background: var(--bg-inset);
   border: 3px solid var(--border);
   box-shadow: 4px 4px 0 #000;
   padding: 10px 16px;
@@ -251,15 +252,23 @@ body {
 }
 
 .room-code-copy {
-  font-size: 0.5rem;
+  display: flex;
   color: var(--fg-dim);
 }
 
-.controls-bar {
+.room-header-actions {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
+}
+
+.pixel-btn--icon {
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  /* Same fixed line-height as .pixel-btn--small (not relative to this
+     rule's own larger font-size) so this button's box height matches
+     Leave's exactly, despite the bigger emoji glyph. */
+  line-height: 1.2rem;
 }
 
 .toggle-btn--active {
@@ -388,6 +397,10 @@ body {
   left: 4px;
   font-size: 0.4rem;
   color: var(--fg-dim);
+}
+
+.vote-value--tight {
+  letter-spacing: -0.25rem;
 }
 
 .vote-card:hover {

@@ -1,4 +1,5 @@
 import type { Player } from '../types'
+import { CheckIcon, CoffeeIcon } from './icons'
 
 interface VoteSummaryProps {
   players: Player[]
@@ -17,7 +18,11 @@ export function VoteSummary({ players }: VoteSummaryProps) {
 
   return (
     <div className="vote-summary">
-      {consensus && <p className="vote-summary-consensus">✓ Consensus!</p>}
+      {consensus && (
+        <p className="vote-summary-consensus">
+          <CheckIcon /> Consensus!
+        </p>
+      )}
       {average !== null && (
         <p className="vote-summary-average">
           Average: <strong>{average.toFixed(1)}</strong>
@@ -26,7 +31,7 @@ export function VoteSummary({ players }: VoteSummaryProps) {
       <div className="vote-summary-bars">
         {[...counts.entries()].map(([v, count]) => (
           <div key={v} className="vote-summary-bar-row">
-            <span className="vote-summary-bar-label">{v}</span>
+            <span className="vote-summary-bar-label">{v === '☕' ? <CoffeeIcon /> : v}</span>
             <div className="vote-summary-bar-track">
               <div
                 className="vote-summary-bar-fill"

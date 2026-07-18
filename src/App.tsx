@@ -15,9 +15,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <h1 className="app-title">
-          <span aria-hidden="true">♠</span> 8-BIT PLANNING POKER
-        </h1>
+        <h1 className="app-title">8-BIT PLANNING POKER</h1>
       </header>
       <main className="app-main">
         {session.state ? (

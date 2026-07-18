@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { PlanningPokerSession } from '../hooks/usePlanningPokerSession'
 import { buildInviteLink } from '../utils/roomCode'
+import { CopyIcon, CheckIcon, EyeIcon, LockIcon, MonitorIcon, RefreshIcon } from './icons'
 import { PlayerCard } from './PlayerCard'
 import { VoteDeck } from './VoteDeck'
 import { VoteSummary } from './VoteSummary'
@@ -44,7 +45,9 @@ export function Room({ session }: RoomProps) {
   return (
     <div className="room">
       {status === 'reconnecting' && (
-        <div className="banner banner--info">🔄 Reconnecting…</div>
+        <div className="banner banner--info">
+          <RefreshIcon /> Reconnecting…
+        </div>
       )}
 
       {(status === 'disconnected' || status === 'error') && (
@@ -62,40 +65,60 @@ export function Room({ session }: RoomProps) {
         <div className="room-code" onClick={copyCode} title="Click to copy an invite link">
           <span className="room-code-label">ROOM</span>
           <span className="room-code-value">{state.code}</span>
-          <span className="room-code-copy">{copied ? 'link copied!' : 'copy link'}</span>
+          <span className="room-code-copy" aria-hidden="true">
+            {copied ? <CheckIcon /> : <CopyIcon />}
+          </span>
         </div>
-        <button className="pixel-btn pixel-btn--small" onClick={leave}>
-          Leave
-        </button>
-      </div>
-
-      <div className="controls-bar">
-        <button
-          type="button"
-          className={`pixel-btn pixel-btn--small ${self?.isSpectator ? 'toggle-btn--active' : ''}`}
-          onClick={() => setSpectator(!self?.isSpectator)}
-          title="Sit this round out — you won't vote and won't block Reveal"
-        >
-          👀 {self?.isSpectator ? 'Spectating' : 'Spectate'}
-        </button>
-
-        {isHost && (
+        <div className="room-header-actions">
           <button
             type="button"
-            className={`pixel-btn pixel-btn--small ${presenterMode ? 'toggle-btn--active' : ''}`}
-            onClick={() => setPresenterMode((v) => !v)}
-            title="Hides your own vote card so it's safe to screen-share this window"
+            className={`pixel-btn pixel-btn--small pixel-btn--icon ${
+              self?.isSpectator ? 'toggle-btn--active' : ''
+            }`}
+            onClick={() => setSpectator(!self?.isSpectator)}
+            title={
+              self?.isSpectator
+                ? "Spectating — click to rejoin voting"
+                : "Spectate — sit this round out, won't vote or block Reveal"
+            }
+            aria-label="Toggle spectate mode"
           >
-            🖥️ Presenter Mode: {presenterMode ? 'ON' : 'OFF'}
+            <EyeIcon />
           </button>
-        )}
+
+          {isHost && (
+            <button
+              type="button"
+              className={`pixel-btn pixel-btn--small pixel-btn--icon ${
+                presenterMode ? 'toggle-btn--active' : ''
+              }`}
+              onClick={() => setPresenterMode((v) => !v)}
+              title={
+                presenterMode
+                  ? 'Presenter Mode ON — your vote is hidden on this screen'
+                  : "Presenter Mode — hide your vote so it's safe to screen-share"
+              }
+              aria-label="Toggle presenter mode"
+            >
+              <MonitorIcon />
+            </button>
+          )}
+
+          <button className="pixel-btn pixel-btn--small" onClick={leave}>
+            Leave
+          </button>
+        </div>
       </div>
 
       {self?.isSpectator && (
-        <p className="controls-hint">👀 spectating — you won't vote this round</p>
+        <p className="controls-hint">
+          <EyeIcon /> spectating — you won't vote this round
+        </p>
       )}
       {isHost && presenterMode && (
-        <p className="controls-hint">🔒 your vote is hidden on this screen</p>
+        <p className="controls-hint">
+          <LockIcon /> your vote is hidden on this screen
+        </p>
       )}
 
       <label className="field story-field">
@@ -122,7 +145,9 @@ export function Room({ session }: RoomProps) {
       {state.revealed && <VoteSummary players={state.players} />}
 
       {self?.isSpectator ? (
-        <p className="spectator-notice">👀 You're spectating — sit back and watch this round.</p>
+        <p className="spectator-notice">
+          <EyeIcon /> You're spectating — sit back and watch this round.
+        </p>
       ) : (
         <VoteDeck
           value={self?.vote ?? null}

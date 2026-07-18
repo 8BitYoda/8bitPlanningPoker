@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { VOTE_VALUES, type VoteValue } from '../types'
+import { CoffeeIcon } from './icons'
 
 interface VoteDeckProps {
   value: VoteValue | null
@@ -38,7 +39,13 @@ export function VoteDeck({ value, onVote, hideSelection = false }: VoteDeckProps
           onClick={() => onVote(value === v ? null : v)}
           title={`Press "${VOTE_KEYS[i]}" to vote ${v}`}
         >
-          {v}
+          {v === '☕' ? (
+            <CoffeeIcon />
+          ) : v === '0.5' ? (
+            <span className="vote-value--tight">{v}</span>
+          ) : (
+            v
+          )}
           <span className="vote-card-key">{VOTE_KEYS[i]}</span>
         </button>
       ))}
